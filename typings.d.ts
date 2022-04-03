@@ -1,0 +1,30 @@
+interface Image {
+  asset: {
+    url: string
+  }
+}
+
+export interface Collection {
+  _id: string
+  title: string
+  nftCollectionName: string
+  description: string
+  address: string
+  slug: {
+    current: string
+  }
+  creator: Creator
+  mainImage: Image
+  previewImage: Image
+}
+
+export interface Creator {
+  _id: string
+  name: string
+  address: string
+  slug: {
+    current: string
+  }
+  image: Image
+  bio: string
+}
