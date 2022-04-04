@@ -11,12 +11,15 @@ import { Collection } from '../../typings'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 import { BigNumber } from 'ethers'
+import { NFTMetadataOwner } from '@thirdweb-dev/sdk'
+import toast, { Toaster } from 'react-hot-toast'
 
 const NFTDropPage: NextPage<{ collection: Collection }> = ({ collection }) => {
   const [claimedSupply, setClaimedSupply] = useState<number>(0)
   const [totalSupply, setTotalSupply] = useState<BigNumber>()
   const [priceInEth, setPriceInEth] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(true)
+  const [claimedNFT, setClaimedNFT] = useState<NFTMetadataOwner | null>(null)
 
   const nftDrop = useNFTDrop(collection.address)
   const connectWithMetamask = useMetamask()
@@ -53,12 +56,67 @@ const NFTDropPage: NextPage<{ collection: Collection }> = ({ collection }) => {
     fetchNFTDropData()
   }, [nftDrop])
 
+  const mintNFT = () => {
+    if (!nftDrop || !address) return
+
+    const quantity = 1
+
+    setLoading(true)
+    setClaimedNFT(null)
+
+    const notification = toast.loading('Minting...', {
+      style: {
+        background: 'white',
+        color: 'green',
+        fontWeight: 'bolder',
+        fontSize: '17px',
+        padding: '20px',
+      },
+    })
+
+    nftDrop
+      .claimTo(address, quantity)
+      .then(async (transactionData) => {
+        const claimedNFT_ = await transactionData[0].data()
+
+        setClaimedNFT(claimedNFT_)
+        toast('HOORAY!! YOU SUCCESSFULLY MINTED!!', {
+          duration: 8000,
+          style: {
+            background: 'green',
+            color: 'white',
+            fontWeight: 'bolder',
+            fontSize: '17px',
+            padding: '20px',
+          },
+        })
+      })
+      .catch((err) =>
+        toast('Whoops!! Something went wrong!!', {
+          style: {
+            background: 'red',
+            color: 'white',
+            fontWeight: 'bolder',
+            fontSize: '17px',
+            padding: '20px',
+          },
+        })
+      )
+      .finally(() => {
+        setLoading(false)
+        setClaimedNFT(null)
+
+        toast.dismiss(notification)
+      })
+  }
+
   return (
     <div className="flex min-h-screen flex-col lg:grid lg:grid-cols-10">
       <Head>
         <title>JAK NFT Drop App - {collection.nftCollectionName}</title>
         <link rel="icon" href="/favicon.png" />
       </Head>
+      <Toaster position="bottom-center" />
       <div className="bg-gradient-to-br from-cyan-800 to-rose-500 lg:col-span-4">
         <div className="flex flex-col items-center justify-center py-2 lg:min-h-screen">
           <div className="rounded-xl bg-gradient-to-br from-yellow-400 to-purple-600 p-2">
@@ -131,6 +189,7 @@ const NFTDropPage: NextPage<{ collection: Collection }> = ({ collection }) => {
         </div>
         <button
           className="mt-12 h-16 w-full rounded-full bg-red-500 font-bold text-white disabled:bg-gray-400"
+          onClick={mintNFT}
           disabled={
             loading || claimedSupply === totalSupply?.toNumber() || !address
           }
